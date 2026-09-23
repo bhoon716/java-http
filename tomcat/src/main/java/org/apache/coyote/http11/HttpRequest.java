@@ -177,6 +177,17 @@ public class HttpRequest {
         return parseParams(body);
     }
 
+    private static boolean isFormUrlEncoded(Map<String, String> headers) {
+        String contentType = headers.get(CONTENT_TYPE);
+
+        if (contentType == null) {
+            return false;
+        }
+
+        return contentType.toLowerCase(Locale.ROOT)
+                .startsWith(FORM_URL_ENCODED);
+    }
+
     private static Map<String, List<String>> parseParams(String rawParams) {
         Map<String, List<String>> params = new HashMap<>();
 
@@ -195,17 +206,6 @@ public class HttpRequest {
         }
 
         return params;
-    }
-
-    private static boolean isFormUrlEncoded(Map<String, String> headers) {
-        String contentType = headers.get(CONTENT_TYPE);
-
-        if (contentType == null) {
-            return false;
-        }
-
-        return contentType.toLowerCase(Locale.ROOT)
-                .startsWith(FORM_URL_ENCODED);
     }
 
     private static String decode(String value) {
@@ -266,6 +266,16 @@ public class HttpRequest {
         return getFirstValue(bodyParams, name);
     }
 
+    private String getFirstValue(Map<String, List<String>> params, String name) {
+        List<String> values = params.get(name);
+
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+
+        return values.getFirst();
+    }
+
     public HttpCookie getCookie() {
         return cookie;
     }
@@ -280,15 +290,5 @@ public class HttpRequest {
 
     public void setSession(HttpSession session) {
         this.session = session;
-    }
-
-    private String getFirstValue(Map<String, List<String>> params, String name) {
-        List<String> values = params.get(name);
-
-        if (values == null || values.isEmpty()) {
-            return null;
-        }
-
-        return values.getFirst();
     }
 }

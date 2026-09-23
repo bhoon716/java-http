@@ -55,30 +55,6 @@ public class Http11Processor implements Runnable, Processor {
                 .ifPresent(request::setSession);
     }
 
-    private HttpSession getOrCreateSession(HttpRequest request) {
-        HttpSession session = request.getSession();
-        if (session != null) {
-            return session;
-        }
-
-        SimpleSession newSession = SimpleSession.create();
-        sessionManager.add(newSession);
-        request.setSession(newSession);
-        return newSession;
-    }
-
-    private void applySessionCookie(HttpRequest request, HttpResponse response) {
-        HttpSession session = request.getSession();
-        if (session == null || !session.isNew()) {
-            return;
-        }
-
-        response.addHeader("Set-Cookie", "JSESSIONID=" + session.getId() + "; Path=/");
-        if (session instanceof SimpleSession simpleSession) {
-            simpleSession.markEstablished();
-        }
-    }
-
     private HttpResponse handleRequest(HttpRequest request) throws IOException {
         if (request.isMatched(HttpMethod.GET, "/login")) {
             return handleLoginPage(request);
@@ -144,6 +120,18 @@ public class Http11Processor implements Runnable, Processor {
                 .filter(user -> user.checkPassword(password));
     }
 
+    private HttpSession getOrCreateSession(HttpRequest request) {
+        HttpSession session = request.getSession();
+        if (session != null) {
+            return session;
+        }
+
+        SimpleSession newSession = SimpleSession.create();
+        sessionManager.add(newSession);
+        request.setSession(newSession);
+        return newSession;
+    }
+
     private HttpResponse handleRegister(HttpRequest request) {
         String account = request.getBodyParamValue("account");
         String email = request.getBodyParamValue("email");
@@ -173,16 +161,6 @@ public class Http11Processor implements Runnable, Processor {
         return HttpResponse.ok(contentType, body);
     }
 
-    private HttpResponse createRootResponse() {
-        byte[] body = "Hello world!".getBytes(StandardCharsets.UTF_8);
-        return HttpResponse.ok("text/html;charset=utf-8", body);
-    }
-
-    private HttpResponse createNotFoundResponse() throws IOException {
-        byte[] body = readResourceBytes("static/404.html");
-        return HttpResponse.notFound(body);
-    }
-
     private byte[] readResourceBytes(String path) throws IOException {
         try (final var fileStream = getClass().getClassLoader().getResourceAsStream(path)) {
             if (fileStream == null) {
@@ -208,10 +186,32 @@ public class Http11Processor implements Runnable, Processor {
         return "application/octet-stream";
     }
 
+    private HttpResponse createRootResponse() {
+        byte[] body = "Hello world!".getBytes(StandardCharsets.UTF_8);
+        return HttpResponse.ok("text/html;charset=utf-8", body);
+    }
+
+    private HttpResponse createNotFoundResponse() throws IOException {
+        byte[] body = readResourceBytes("static/404.html");
+        return HttpResponse.notFound(body);
+    }
+
     private boolean isStaticResource(String path) {
         return path.endsWith(".html")
                 || path.endsWith(".css")
                 || path.endsWith(".js");
+    }
+
+    private void applySessionCookie(HttpRequest request, HttpResponse response) {
+        HttpSession session = request.getSession();
+        if (session == null || !session.isNew()) {
+            return;
+        }
+
+        response.addHeader("Set-Cookie", "JSESSIONID=" + session.getId() + "; Path=/");
+        if (session instanceof SimpleSession simpleSession) {
+            simpleSession.markEstablished();
+        }
     }
 
     private void writeResponse(
